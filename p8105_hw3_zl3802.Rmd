@@ -1,0 +1,13 @@
+
+---
+title: "Homework 3"
+output: github_document
+---
+
+# Problem 1
+
+# Problem 2
+
+# Problem 3
+  
+  
