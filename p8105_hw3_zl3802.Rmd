@@ -5,6 +5,97 @@ output: github_document
 ---
 
 # Problem 1
+```{r}
+library(p8105.datasets)
+data("ny_noaa")
+
+dim(ny_noaa)
+str(ny_noaa)
+colSums(is.na(ny_noaa))
+```
+
+The NY NOAA dataset has 2,595,176 rows and 7 columns. It is a tibble containing daily weather records from different stations. The main variables include station ID, date, precipitation, snowfall, snow depth, and maximum and minimum temperatures. There are many missing values, especially for tmax and tmin, which each have over 1.1 million missing values. Other weather variables also have missing values, but ID and date do not.
+
+```{r}
+library(dplyr)
+library(lubridate)
+
+noaa_clean <- ny_noaa |>
+  mutate(
+    year = year(date),
+    month = month(date),
+    day = day(date),
+    prcp = prcp / 10,
+    tmax = as.numeric(tmax) / 10,
+    tmin = as.numeric(tmin) / 10
+  )
+
+sort(table(noaa_clean$snow), decreasing = TRUE)[1:10]
+```
+
+The most common snowfall value is 0 mm, with 2,008,508 observations, because most days have no snow. The next most common values are 25 mm and 13 mm, likely because snowfall measurements were converted from inches to metric units.
+
+
+```{r}
+library(ggplot2)
+
+jan_jul <- noaa_clean |>
+  filter(month == 1 | month == 7, !is.na(tmax)) |>
+  group_by(id, year, month) |>
+  summarize(mean_tmax = mean(tmax), .groups = "drop") |>
+  mutate(
+    month = factor(month, levels = c(1, 7),
+                   labels = c("January", "July"))
+  )
+
+ggplot(jan_jul, aes(x = year, y = mean_tmax)) +
+  geom_point(alpha = 0.3, size = 0.6) +
+  facet_wrap(~month) +
+  scale_x_continuous(breaks = c(1985, 1995, 2005)) +
+  labs(
+    x = "Year",
+    y = "Average maximum temperature (°C)"
+  ) +
+  theme_minimal()
+```
+
+January temperatures are much lower and vary more across years, while July temperatures are more consistent, mostly around 25–30°C. There is no clear overall trend over time. There are a few outliers, especially some unusually low temperatures in July.
+
+
+
+```{r}
+library(ggridges)
+library(patchwork)
+
+snow_data <- noaa_clean |>
+  filter(snow > 0, snow < 100)
+
+snow_plot <- ggplot(snow_data, aes(x = snow, y = factor(year))) +
+  geom_density_ridges(fill = "grey75", scale = 1) +
+  labs(
+    title = "Snowfall Distribution by Year",
+    x = "Snowfall (mm)",
+    y = "Year"
+  ) +
+  theme_minimal()
+
+temp_data <- noaa_clean |>
+  filter(!is.na(tmax), !is.na(tmin))
+
+temp_plot <- ggplot(temp_data, aes(x = tmin, y = tmax)) +
+  geom_hex(bins = 35) +
+  labs(
+    title = "Max vs Min Temperature",
+    x = "Minimum Temperature (°C)",
+    y = "Maximum Temperature (°C)"
+  ) +
+  theme_minimal()
+
+temp_plot + snow_plot
+```
+
+Snowfall amounts are mostly low, and the distributions look similar across years with no clear trend. There is a clear positive relationship between tmin and tmax, with a few unusual values outside the main pattern.
+
 
 # Problem 2
 
