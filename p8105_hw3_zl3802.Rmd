@@ -199,10 +199,92 @@ Activity is lowest during the early morning and increases during the day, then d
 
 
 # Problem 3
+
+```{r}
+jan_2020 <- read.csv("data/Jan 2020 Citi.csv")
+jul_2020 <- read.csv("data/July 2020 Citi.csv")
+jan_2024 <- read.csv("data/Jan 2024 Citi.csv")
+jul_2024 <- read.csv("data/July 2024 Citi.csv")
+```
+
+```{r}
+citi_bike <- bind_rows(
+  mutate(jan_2020, year = 2020, month = "January"),
+  mutate(jul_2020, year = 2020, month = "July"),
+  mutate(jan_2024, year = 2024, month = "January"),
+  mutate(jul_2024, year = 2024, month = "July")
+) |>
+  mutate(
+    weekdays = factor(weekdays,
+                      levels = c("Monday", "Tuesday", "Wednesday",
+                                 "Thursday", "Friday", "Saturday", "Sunday"))
+  )
+```
+
+The cleaned Citi Bike dataset has 99,485 rows and 9 columns, with each row representing one ride. It includes ride ID, bike type, weekday, ride duration, starting and ending stations, membership status, year, and month. Some station names are missing, but these rides are kept in the dataset.
+
+
+```{r}
+ride_table <- citi_bike |>
+  count(year, month, member_casual) |>
+  pivot_wider(
+    names_from = member_casual,
+    values_from = n
+  )
+
+knitr::kable(ride_table)
+```
+
+Members took more rides than casual riders in every month. July had more rides than January in both years, and 2024 had more rides than 2020. July 2024 had the most rides, with 36,262 member rides and 10,894 casual rides in the dataset.
+
+
+```{r}
+top_stations <- citi_bike |>
+filter(year == 2024, month == "July",
+       !is.na(start_station_name))|>
+  count(start_station_name, sort = TRUE) |>
+  head(5)
+
+knitr::kable(top_stations)
+```
+
+
+```{r}
+ride_duration <- citi_bike |>
+  group_by(year, month, weekdays) |>
+  summarize(
+    median_duration = median(duration),
+    .groups = "drop"
+  )
+
+ggplot(ride_duration, aes(x = weekdays, y = median_duration)) +
+  geom_col() +
+  facet_grid(year ~ month) +
+  scale_x_discrete(labels = c("Mon", "Tue", "Wed", "Thu",
+                              "Fri", "Sat", "Sun")) +
+  labs(
+    x = "Day of Week",
+    y = "Median Ride Duration (minutes)"
+  )
+```
+
+Median ride duration is generally longer in July than in January. Weekend rides also tend to be longer than weekday rides, especially in July. Ride durations in 2020 are generally longer than in 2024, with the biggest difference in July.
   
+```{r}
+citi_2024 <- citi_bike |>
+  filter(year == 2024)
+
+ggplot(citi_2024, aes(x = member_casual, y = duration)) +
+  geom_boxplot() +
+  facet_grid(month ~ rideable_type) +
+  labs(
+    x = "Membership Status",
+    y = "Ride Duration (minutes)"
+  )
+```
   
-  
-  
+Casual riders generally have longer rides than members in both months. Ride durations are also longer in July than in January. Classic bikes tend to have longer rides for casual riders, while electric bikes have slightly longer rides for members. There are many outliers with much longer ride durations.
+
   
   
   
